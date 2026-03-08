@@ -46,6 +46,11 @@ def create_chat_model(name: str | None = None, thinking_enabled: bool = False, *
         kwargs.update({"reasoning_effort": "minimal"})
     if not model_config.supports_reasoning_effort:
         kwargs.update({"reasoning_effort": None})
+    # Support 'base_url' as an alias for 'api_base' for better compatibility
+    if "api_base" in model_settings_from_config:
+        api_base = model_settings_from_config.pop("api_base")
+        model_settings_from_config["base_url"] = api_base
+
     model_instance = model_class(**kwargs, **model_settings_from_config)
 
     if is_tracing_enabled():
