@@ -38,6 +38,7 @@ class LocalContainerBackend(SandboxBackend):
         container_prefix: str,
         config_mounts: list,
         environment: dict[str, str],
+        node_host: str = "localhost",
     ):
         """Initialize the local container backend.
 
@@ -53,6 +54,7 @@ class LocalContainerBackend(SandboxBackend):
         self._container_prefix = container_prefix
         self._config_mounts = config_mounts
         self._environment = environment
+        self._node_host = node_host
         self._runtime = self._detect_runtime()
 
     @property
@@ -113,7 +115,7 @@ class LocalContainerBackend(SandboxBackend):
 
         return SandboxInfo(
             sandbox_id=sandbox_id,
-            sandbox_url=f"http://localhost:{port}",
+            sandbox_url=f"http://{self._node_host}:{port}",
             container_name=container_name,
             container_id=container_id,
         )
@@ -159,7 +161,7 @@ class LocalContainerBackend(SandboxBackend):
         if port is None:
             return None
 
-        sandbox_url = f"http://localhost:{port}"
+        sandbox_url = f"http://{self._node_host}:{port}"
         if not wait_for_sandbox_ready(sandbox_url, timeout=5):
             return None
 
