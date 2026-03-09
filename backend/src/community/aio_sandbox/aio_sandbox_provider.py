@@ -71,6 +71,18 @@ class AioSandboxProvider(SandboxProvider):
           API_KEY: $MY_API_KEY
     """
 
+    @staticmethod
+    def _translate_for_host(path: str) -> str:
+        """Translate a container path to a host path (for Docker-in-Docker on Windows)."""
+        root = os.environ.get("DEER_FLOW_ROOT")
+        if not root:
+            return path
+        # Normalize: if we are in /app and root is set, swap it.
+        if path.startswith("/app"):
+            return path.replace("/app", root.replace("\\", "/"), 1)
+        return path
+
+
     def __init__(self):
         self._lock = threading.Lock()
         self._sandboxes: dict[str, AioSandbox] = {}  # sandbox_id -> AioSandbox instance
@@ -119,6 +131,7 @@ class AioSandboxProvider(SandboxProvider):
             container_prefix=self._config["container_prefix"],
             config_mounts=self._config["mounts"],
             environment=self._config["environment"],
+            node_host=self._config.get("node_host", "localhost"),
         )
 
     def _create_state_store(self) -> SandboxStateStore:
@@ -154,6 +167,7 @@ class AioSandboxProvider(SandboxProvider):
             "environment": self._resolve_env_vars(sandbox_config.environment or {}),
             # provisioner URL for dynamic pod management (e.g. http://provisioner:8002)
             "provisioner_url": getattr(sandbox_config, "provisioner_url", None) or "",
+            "node_host": os.environ.get("NODE_HOST") or getattr(sandbox_config, "node_host", "localhost"),
         }
 
     @staticmethod
@@ -206,9 +220,9 @@ class AioSandboxProvider(SandboxProvider):
         paths.ensure_thread_dirs(thread_id)
 
         mounts = [
-            (str(paths.sandbox_work_dir(thread_id)), f"{VIRTUAL_PATH_PREFIX}/workspace", False),
-            (str(paths.sandbox_uploads_dir(thread_id)), f"{VIRTUAL_PATH_PREFIX}/uploads", False),
-            (str(paths.sandbox_outputs_dir(thread_id)), f"{VIRTUAL_PATH_PREFIX}/outputs", False),
+            (AioSandboxProvider._translate_for_host(str(paths.sandbox_work_dir(thread_id))), f"{VIRTUAL_PATH_PREFIX}/workspace", False),
+            (AioSandboxProvider._translate_for_host(str(paths.sandbox_uploads_dir(thread_id))), f"{VIRTUAL_PATH_PREFIX}/uploads", False),
+            (AioSandboxProvider._translate_for_host(str(paths.sandbox_outputs_dir(thread_id))), f"{VIRTUAL_PATH_PREFIX}/outputs", False),
         ]
 
         return mounts
@@ -222,7 +236,8 @@ class AioSandboxProvider(SandboxProvider):
             container_path = config.skills.container_path
 
             if skills_path.exists():
-                return (str(skills_path), container_path, True)  # Read-only for security
+                host_path = AioSandboxProvider._translate_for_host(str(skills_path))
+                return (host_path, container_path, True)  # Read-only for security
         except Exception as e:
             logger.warning(f"Could not setup skills mount: {e}")
         return None
