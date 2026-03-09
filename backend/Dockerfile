@@ -6,6 +6,8 @@ RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debia
     apt-get update && apt-get install -y \
     curl \
     build-essential \
+    docker.io \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 # Install uv
