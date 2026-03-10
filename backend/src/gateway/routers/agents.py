@@ -24,6 +24,8 @@ class AgentResponse(BaseModel):
     description: str = Field(default="", description="Agent description")
     model: str | None = Field(default=None, description="Optional model override")
     tool_groups: list[str] | None = Field(default=None, description="Optional tool group whitelist")
+    expertise: list[str] = Field(default_factory=list, description="Agent expertise keywords")
+    aliases: list[str] = Field(default_factory=list, description="Alternative names for the agent")
     soul: str | None = Field(default=None, description="SOUL.md content (included on GET /{name})")
 
 
@@ -84,6 +86,8 @@ def _agent_config_to_response(agent_cfg: AgentConfig, include_soul: bool = False
         description=agent_cfg.description,
         model=agent_cfg.model,
         tool_groups=agent_cfg.tool_groups,
+        expertise=agent_cfg.expertise,
+        aliases=agent_cfg.aliases,
         soul=soul,
     )
 

@@ -22,7 +22,10 @@ class AgentConfig(BaseModel):
     description: str = ""
     model: str | None = None
     tool_groups: list[str] | None = None
-
+    expertise: list[str] = []
+    aliases: list[str] = []
+    subagent_enabled: bool = False
+    max_concurrent_subagents: int | None = None
 
 def load_agent_config(name: str | None) -> AgentConfig | None:
     """Load the custom or default agent's config from its directory.
