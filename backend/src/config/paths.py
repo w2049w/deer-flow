@@ -124,10 +124,35 @@ class Paths:
         return self.thread_dir(thread_id) / "user-data"
 
     def ensure_thread_dirs(self, thread_id: str) -> None:
-        """Create all standard sandbox directories for a thread."""
-        self.sandbox_work_dir(thread_id).mkdir(parents=True, exist_ok=True)
-        self.sandbox_uploads_dir(thread_id).mkdir(parents=True, exist_ok=True)
-        self.sandbox_outputs_dir(thread_id).mkdir(parents=True, exist_ok=True)
+        """Create all standard sandbox directories for a thread and ensure permissions."""
+        t_dir = self.thread_dir(thread_id)
+        work_dir = self.sandbox_work_dir(thread_id)
+        uploads_dir = self.sandbox_uploads_dir(thread_id)
+        outputs_dir = self.sandbox_outputs_dir(thread_id)
+
+        for d in [t_dir, work_dir, uploads_dir, outputs_dir]:
+            d.mkdir(parents=True, exist_ok=True)
+            self._fix_permissions(d)
+
+    def _fix_permissions(self, path: Path) -> None:
+        """Self-healing permission fix: ensure directory is writable by everyone.
+        
+        This is crucial for Docker-in-Docker / Windows-Docker environments where
+        UID/GID mismatches often cause 'Permission denied' errors for the assistant user
+        if the directory was created by a root process.
+        """
+        try:
+            # Recursive chmod 777 to ensure sandbox users can read/write
+            # On Linux, this is a standard fix. On Windows host, it helps with mapping.
+            os.chmod(path, 0o777)
+            for root, dirs, files in os.walk(path):
+                for d in dirs:
+                    os.chmod(os.path.join(root, d), 0o777)
+                for f in files:
+                    os.chmod(os.path.join(root, f), 0o777)
+        except Exception:
+            # Best effort - might fail if we don't own the file or are on a limited filesystem
+            pass
 
     def resolve_virtual_path(self, thread_id: str, virtual_path: str) -> Path:
         """Resolve a sandbox virtual path to the actual host filesystem path.
