@@ -12,7 +12,7 @@ from langgraph.typing import ContextT
 
 from src.agents.lead_agent.prompt import get_skills_prompt_section
 from src.agents.thread_state import ThreadState
-from src.subagents import SubagentExecutor, get_subagent_config
+from src.subagents import SubagentExecutor, find_best_subagent, get_subagent_config
 from src.subagents.executor import SubagentStatus, get_background_task_result
 
 logger = logging.getLogger(__name__)
@@ -23,8 +23,8 @@ def task_tool(
     runtime: ToolRuntime[ContextT, ThreadState],
     description: str,
     prompt: str,
-    subagent_type: Literal["general-purpose", "bash"],
     tool_call_id: Annotated[str, InjectedToolCallId],
+    subagent_type: str = "auto",
     max_turns: int | None = None,
 ) -> str:
     """Delegate a task to a specialized subagent that runs in its own context.
@@ -35,11 +35,10 @@ def task_tool(
     - Execute commands or operations in isolated contexts
 
     Available subagent types:
-    - **general-purpose**: A capable agent for complex, multi-step tasks that require
-      both exploration and action. Use when the task requires complex reasoning,
-      multiple dependent steps, or would benefit from isolated context.
-    - **bash**: Command execution specialist for running bash commands. Use for
-      git operations, build processes, or when command output would be verbose.
+    - **auto**: (Recommended) Automatically matches the best specialized subagent based on the task prompt.
+    - **general-purpose**: A capable agent for complex, multi-step tasks.
+    - **bash**: Command execution specialist for running bash commands (git, npm, docker, etc.).
+    - Or any custom agent name (e.g., 'agent-commander', 'researcher').
 
     When to use this tool:
     - Complex tasks requiring multiple steps or tools
@@ -54,13 +53,28 @@ def task_tool(
     Args:
         description: A short (3-5 word) description of the task for logging/display. ALWAYS PROVIDE THIS PARAMETER FIRST.
         prompt: The task description for the subagent. Be specific and clear about what needs to be done. ALWAYS PROVIDE THIS PARAMETER SECOND.
-        subagent_type: The type of subagent to use. ALWAYS PROVIDE THIS PARAMETER THIRD.
+        tool_call_id: Injected by the system.
+        subagent_type: The type of subagent to use. Use "auto" to let the system decide, or specify a name. Defaults to "auto".
         max_turns: Optional maximum number of agent turns. Defaults to subagent's configured max.
     """
-    # Get subagent configuration
-    config = get_subagent_config(subagent_type)
+    # Multi-stage subagent resolution
+    config = None
+    resolved_type = subagent_type
+
+    # 1. Exact match by name
+    if subagent_type != "auto":
+        config = get_subagent_config(subagent_type)
+
+    # 2. Dynamic semantic match if 'auto' or exact match failed
     if config is None:
-        return f"Error: Unknown subagent type '{subagent_type}'. Available: general-purpose, bash"
+        logger.info(f"Subagent '{subagent_type}' not found or set to 'auto'. Attempting semantic matching...")
+        config = find_best_subagent(prompt)
+        if config:
+            resolved_type = config.name
+            logger.info(f"Resolved 'auto' subagent to: {resolved_type}")
+
+    if config is None:
+        return f"Error: Could not find or match a suitable subagent for task: {description}. Available types: general-purpose, bash, or any custom agent."
 
     # Build config overrides
     overrides: dict = {}
@@ -123,7 +137,7 @@ def task_tool(
     # Polling timeout: execution timeout + 60s buffer, checked every 5s
     max_poll_count = (config.timeout_seconds + 60) // 5
 
-    logger.info(f"[trace={trace_id}] Started background task {task_id} (subagent={subagent_type}, timeout={config.timeout_seconds}s, polling_limit={max_poll_count} polls)")
+    logger.info(f"[trace={trace_id}] Started background task {task_id} (subagent={resolved_type}, timeout={config.timeout_seconds}s, polling_limit={max_poll_count} polls)")
 
     writer = get_stream_writer()
     # Send Task Started message'
