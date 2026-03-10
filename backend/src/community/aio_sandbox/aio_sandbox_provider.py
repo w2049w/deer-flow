@@ -214,16 +214,21 @@ class AioSandboxProvider(SandboxProvider):
     def _get_thread_mounts(thread_id: str) -> list[tuple[str, str, bool]]:
         """Get volume mounts for a thread's data directories.
 
-        Creates directories if they don't exist (lazy initialization).
+        Creates directories if they don't exist and ensures they are writable.
         """
         paths = get_paths()
         paths.ensure_thread_dirs(thread_id)
 
-        mounts = [
-            (AioSandboxProvider._translate_for_host(str(paths.sandbox_work_dir(thread_id))), f"{VIRTUAL_PATH_PREFIX}/workspace", False),
-            (AioSandboxProvider._translate_for_host(str(paths.sandbox_uploads_dir(thread_id))), f"{VIRTUAL_PATH_PREFIX}/uploads", False),
-            (AioSandboxProvider._translate_for_host(str(paths.sandbox_outputs_dir(thread_id))), f"{VIRTUAL_PATH_PREFIX}/outputs", False),
-        ]
+        mounts = []
+        for name, dir_path in [
+            ("workspace", paths.sandbox_work_dir(thread_id)),
+            ("uploads", paths.sandbox_uploads_dir(thread_id)),
+            ("outputs", paths.sandbox_outputs_dir(thread_id)),
+        ]:
+            host_path = AioSandboxProvider._translate_for_host(str(dir_path))
+            container_path = f"{VIRTUAL_PATH_PREFIX}/{name}"
+            mounts.append((host_path, container_path, False))
+            logger.debug(f"Computed mount for thread {thread_id}: {host_path} -> {container_path}")
 
         return mounts
 
