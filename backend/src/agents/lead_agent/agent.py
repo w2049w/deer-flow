@@ -262,12 +262,17 @@ def make_lead_agent(config: RunnableConfig):
     reasoning_effort = cfg.get("reasoning_effort", None)
     requested_model_name: str | None = cfg.get("model_name") or cfg.get("model")
     is_plan_mode = cfg.get("is_plan_mode", False)
-    subagent_enabled = cfg.get("subagent_enabled", False)
-    max_concurrent_subagents = cfg.get("max_concurrent_subagents", 3)
     is_bootstrap = cfg.get("is_bootstrap", False)
     agent_name = cfg.get("agent_name")
-
     agent_config = load_agent_config(agent_name) if not is_bootstrap else None
+
+    # Resolve subagent settings: check request config, then agent config, then defaults
+    agent_subagent_enabled = agent_config.subagent_enabled if agent_config else False
+    subagent_enabled = cfg.get("subagent_enabled", agent_subagent_enabled)
+
+    agent_max_concurrent = agent_config.max_concurrent_subagents if agent_config else 3
+    max_concurrent_subagents = cfg.get("max_concurrent_subagents", agent_max_concurrent or 3)
+
     # Custom agent model or fallback to global/default model resolution
     agent_model_name = agent_config.model if agent_config and agent_config.model else _resolve_model_name()
 
