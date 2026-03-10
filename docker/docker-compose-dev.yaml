@@ -115,9 +115,12 @@ services:
       - ../backend/src:/app/backend/src
       - ../backend/.env:/app/backend/.env
       - ../config.yaml:/app/config.yaml
+      - ../extensions_config.json:/app/extensions_config.json
       - ../skills:/app/skills
       - ../logs:/app/logs
       - ../backend/.deer-flow:/app/backend/.deer-flow
+      - ../../my-daily-news:/app/my-daily-news
+      - /app/my-daily-news/.venv
       # Mount uv cache for faster dependency installation
       - ~/.cache/uv:/root/.cache/uv
       - /var/run/docker.sock:/var/run/docker.sock
@@ -148,9 +151,12 @@ services:
       - ../backend/src:/app/backend/src
       - ../backend/.env:/app/backend/.env
       - ../config.yaml:/app/config.yaml
+      - ../extensions_config.json:/app/extensions_config.json
       - ../skills:/app/skills
       - ../logs:/app/logs
       - ../backend/.deer-flow:/app/backend/.deer-flow
+      - ../../my-daily-news:/app/my-daily-news
+      - /app/my-daily-news/.venv
       # Mount uv cache for faster dependency installation
       - ~/.cache/uv:/root/.cache/uv
       - /var/run/docker.sock:/var/run/docker.sock
@@ -159,6 +165,39 @@ services:
       - CI=true
       - DEER_FLOW_ROOT=${DEER_FLOW_ROOT}
       - NODE_HOST=host.docker.internal
+    env_file:
+      - ../.env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - deer-flow-dev
+    restart: unless-stopped
+
+  # Backend - News Reporter Background Worker
+  reporter-worker:
+    build:
+      context: ../
+      dockerfile: backend/Dockerfile
+    container_name: deer-flow-reporter-worker
+    command: sh -c "cd backend && uv run python -m src.workers.news_reporter_worker > /app/logs/reporter_worker.log 2>&1"
+    volumes:
+      - ../backend/src:/app/backend/src
+      - ../backend/.env:/app/backend/.env
+      - ../config.yaml:/app/config.yaml
+      - ../extensions_config.json:/app/extensions_config.json
+      - ../skills:/app/skills
+      - ../logs:/app/logs
+      - ../backend/.deer-flow:/app/backend/.deer-flow
+      - ../../my-daily-news:/app/my-daily-news
+      - /app/my-daily-news/.venv
+      # Mount uv cache for faster dependency installation
+      - ~/.cache/uv:/root/.cache/uv
+      - /var/run/docker.sock:/var/run/docker.sock
+    working_dir: /app
+    environment:
+      - CI=true
+      - DEER_FLOW_ROOT=${DEER_FLOW_ROOT}
+      - PYTHONPATH=/app/backend
     env_file:
       - ../.env
     extra_hosts:
