@@ -13,6 +13,14 @@ def _build_subagent_section(max_concurrent: int) -> str:
     Returns:
         Formatted subagent section string.
     """
+    from src.subagents import list_subagents
+    subagents = list_subagents()
+    
+    subagent_list_str = ""
+    for sa in subagents:
+        expertise_str = ", ".join(sa.expertise) if sa.expertise else "general tasks"
+        subagent_list_str += f"- **{sa.name}**: {sa.description} (Expertise: {expertise_str})\n"
+
     n = max_concurrent
     return f"""<subagent_system>
 **🚀 SUBAGENT MODE ACTIVE - DECOMPOSE, DELEGATE, SYNTHESIZE**
@@ -37,8 +45,8 @@ You are running with subagent capabilities enabled. Your role is to be a **task 
 - **Example thinking pattern**: "I identified 6 sub-tasks. Since the limit is {n} per turn, I will launch the first {n} now, and the rest in the next turn."
 
 **Available Subagents:**
-- **general-purpose**: For ANY non-trivial task - web research, code exploration, file operations, analysis, etc.
-- **bash**: For command execution (git, build, test, deploy operations)
+{subagent_list_str}
+- **auto**: (Recommended) Explicitly let the system match the best specialized agent based on your task prompt.
 
 **Your Orchestration Strategy:**
 
