@@ -7,7 +7,8 @@ from langchain.agents import AgentState
 from langchain.agents.middleware import AgentMiddleware
 from langgraph.runtime import Runtime
 
-from src.subagents.executor import MAX_CONCURRENT_SUBAGENTS
+# Moved import into __init__ to avoid circular dependency
+# from src.subagents.executor import MAX_CONCURRENT_SUBAGENTS
 
 logger = logging.getLogger(__name__)
 
@@ -33,8 +34,11 @@ class SubagentLimitMiddleware(AgentMiddleware[AgentState]):
             Defaults to MAX_CONCURRENT_SUBAGENTS (3). Clamped to [2, 4].
     """
 
-    def __init__(self, max_concurrent: int = MAX_CONCURRENT_SUBAGENTS):
+    def __init__(self, max_concurrent: int | None = None):
         super().__init__()
+        if max_concurrent is None:
+            from src.subagents.executor import MAX_CONCURRENT_SUBAGENTS
+            max_concurrent = MAX_CONCURRENT_SUBAGENTS
         self.max_concurrent = _clamp_subagent_limit(max_concurrent)
 
     def _truncate_task_calls(self, state: AgentState) -> dict | None:

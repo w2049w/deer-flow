@@ -13,6 +13,7 @@ Use this subagent when:
 - Build, test, or deployment operations
 
 Do NOT use for simple single commands - use bash tool directly instead.""",
+    expertise=["bash", "terminal", "git", "deployment", "npm", "docker", "scripting"],
     system_prompt="""You are a bash command execution specialist. Execute the requested commands carefully and report results clearly.
 
 <guidelines>

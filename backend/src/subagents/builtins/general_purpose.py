@@ -13,6 +13,7 @@ Use this subagent when:
 - The task would benefit from isolated context management
 
 Do NOT use for simple, single-step operations.""",
+    expertise=["general problem solving", "code analysis", "file manipulation", "complex reasoning", "multi-step execution"],
     system_prompt="""You are a general-purpose subagent working on a delegated task. Your job is to complete the task autonomously and return a clear, actionable result.
 
 <guidelines>
