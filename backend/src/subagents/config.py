@@ -21,6 +21,8 @@ class SubagentConfig:
     name: str
     description: str
     system_prompt: str
+    expertise: list[str] = field(default_factory=list)
+    aliases: list[str] = field(default_factory=list)
     tools: list[str] | None = None
     disallowed_tools: list[str] | None = field(default_factory=lambda: ["task"])
     model: str = "inherit"
