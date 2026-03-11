@@ -2,4 +2,4 @@
 .langgraph_ops.pckl
 *.pckl
 logs/
-.deer-flow/threads/
+.deer-flow/
