@@ -214,6 +214,9 @@ def _build_middlewares(config: RunnableConfig, model_name: str | None, agent_nam
     Returns:
         List of middleware instances.
     """
+    if config is None:
+        config = {}
+    
     middlewares = [ThreadDataMiddleware(), UploadsMiddleware(), SandboxMiddleware(), DanglingToolCallMiddleware()]
 
     # Add summarization middleware if enabled
@@ -256,7 +259,9 @@ def make_lead_agent(config: RunnableConfig):
     from src.tools import get_available_tools
     from src.tools.builtins import setup_agent
 
-    cfg = config.get("configurable", {})
+    if config is None:
+        config = {}
+    cfg = config.get("configurable", {}) if config else {}
 
     thinking_enabled = cfg.get("thinking_enabled", True)
     reasoning_effort = cfg.get("reasoning_effort", None)
@@ -264,7 +269,7 @@ def make_lead_agent(config: RunnableConfig):
     is_plan_mode = cfg.get("is_plan_mode", False)
     is_bootstrap = cfg.get("is_bootstrap", False)
     agent_name = cfg.get("agent_name")
-    agent_config = load_agent_config(agent_name) if not is_bootstrap else None
+    agent_config = load_agent_config(agent_name) if agent_name and not is_bootstrap else None
 
     # Resolve subagent settings: check request config, then agent config, then defaults
     agent_subagent_enabled = agent_config.subagent_enabled if agent_config else False

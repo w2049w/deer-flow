@@ -18,9 +18,9 @@ NEWS_EDITOR_CONFIG = SubagentConfig(
    - 调用 `fetch_news` 抓取预设源。
    - 调用 `cleansing_fetch` 清理 `inbox.md` 中的手动链接。
 2. **深度精炼 (Distill)**：
-   - 调用 `summarize_pending` 对所有待处理项进行 AI 摘要和评分。
-3. **冷酷筛选并出稿 (Report)**：
-   - 调用 `generate_report(min_score=7, limit=20)` 生成最终简报。
+   - 调用 `summarize_pending(limit=50)` 对所有待处理项进行 AI 摘要和评分（确保清空今日积压）。
+3. **出稿 (Report)**：
+   - 调用 `generate_report(lookback_hours=24, min_score=7, limit=20)` 生成最近 24 小时的精选简报。
 
 ### 行为准则：
 - **宁缺毋滥**：严格执行 >= 7 分的筛选标准。
